@@ -1,0 +1,131 @@
+import pandas as pd
+import numpy as np
+
+data = pd.read_csv('EnjoySports.csv.csv')
+
+data.head()
+outlook	temp	humidity	windy	play
+0	sunny	hot	high	False	no
+1	sunny	hot	high	True	no
+2	overcast	hot	high	False	yes
+3	rainy	mild	high	False	yes
+4	rainy	cool	normal	False	yes
+
+data.shape
+(14, 5)
+
+def Entropy(data):
+    d = data.iloc[:, -1]
+    d = d.value_counts()
+    a = 0
+    for v in d.keys():
+        p = d[v] / sum(d)
+        a -= p * np.log2(p)
+    return a
+
+def IG(data, A):
+    Es =Entropy(data)
+    val = data[A].unique()
+    s_c = data[A].value_counts()
+    s_v = []
+
+    for v in range(len(val)):
+        ds = data[data[A] == val[v]]
+        a = 0
+        for res in data.iloc[:, -1].unique():
+            try:
+                pi = ds.iloc[:, -1].value_counts()[res] / len(ds)
+                a -= pi * np.log2(pi)
+            except:
+                a = 0
+        s_v.append(a)
+
+    for i in range(len(val)):
+        Es = Es - s_c[val[i]] * s_v[i] / sum(s_c)
+
+    return Es
+
+class Node():
+    def _init_(self, name=None, attr=None):
+        self.name = name
+        self.attr = attr
+
+    def call_(self):
+        return self.name
+
+
+# Function to select the best attribute based on Information Gain (ID3)
+def DTNode(data, features_used):
+    node = Node()
+    IGmax = 0
+    v_best = None
+    val_list = [v for v in data.columns[:-1] if v not in features_used]  # Ensure target column is excluded
+
+    if val_list != []:
+        for v in val_list:
+            ig = IG(data, v)
+            if ig > IGmax:
+                IGmax = ig
+                v_best = v
+
+        if v_best:
+            features_used.append(v_best)
+            node.name = v_best
+            node.attr = data[v_best].unique()
+            return node
+        else:
+            return None
+
+    return None
+
+def DTClassifier(data, features_used):
+    root = DTNode(data, features_used)
+    DT_dict = {}
+
+    # If root is found, continue building the tree
+    if root is not None:
+        item = []
+        for attr in root.attr:
+            dataN = data[data[root.name] == attr]
+            if Entropy(dataN) == 0:  # If pure subset, it's a decision (leaf node)
+                item.append((attr, dataN.iloc[:, -1].unique()[0]))
+            else:
+                dt = DTClassifier(dataN, features_used)
+                item.append((attr, dt))
+
+        DT_dict[root.name] = item
+
+    return DT_dict
+
+def print_id3_tree(tree, depth=0):
+    if isinstance(tree, dict):
+        for key, value in tree.items():
+            print(f"{'|   ' * depth}{key}")  # Print the attribute name
+            if isinstance(value, list):
+                for v in value:
+                    print(f"{'|   ' * (depth + 1)}{v[0]} ->", end=" ")
+                    if isinstance(v[1], dict):
+                        print()
+                        print_id3_tree(v[1], depth + 2)  # Recursive call for further splits
+                    else:
+                        print(f"Decision: {v[1]}")  # Print the decision
+    else:
+        print(tree)
+
+features_used = []
+id3_decision_tree = DTClassifier(data, features_used)
+
+# Print the ID3 decision tree with attributes and decisions
+print("Final ID3 Decision Tree:")
+print_id3_tree(id3_decision_tree)
+Final ID3 Decision Tree:
+outlook
+|   sunny -> 
+|   |   humidity
+|   |   |   high -> Decision: no
+|   |   |   normal -> Decision: yes
+|   overcast -> Decision: yes
+|   rainy -> 
+|   |   windy
+|   |   |   False -> Decision: yes
+|   |   |   True -> Decision: no
