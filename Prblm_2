@@ -1,0 +1,44 @@
+import pandas as pd
+import numpy as np
+
+data = pd.read_csv('EnjoySports.csv.csv')
+print(data.head())
+    outlook  temp humidity  windy play
+0     sunny   hot     high  False   no
+1     sunny   hot     high   True   no
+2  overcast   hot     high  False  yes
+3     rainy  mild     high  False  yes
+4     rainy  cool   normal  False  yes
+
+from sklearn.preprocessing import LabelEncoder
+label_encoder = LabelEncoder()
+for column in data.columns:
+    data[column] = label_encoder.fit_transform(data[column])
+print(data.head())  
+outlook  temp  humidity  windy  play
+0        2     1         0      0     0
+1        2     1         0      1     0
+2        0     1         0      0     1
+3        1     2         0      0     1
+4        1     0         1      0     1
+
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import train_test_split
+X = data.iloc[:, :-1] 
+y = data.iloc[:, -1]  
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+clf = DecisionTreeClassifier(criterion='entropy')  
+clf.fit(X_train, y_train)
+accuracy = clf.score(X_test, y_test)
+print(f"Model Accuracy: {accuracy * 100:.2f}%")
+Model Accuracy: 100.00%
+
+decision_tree.pdf
+from sklearn import tree
+import matplotlib.pyplot as plt
+
+# Plot the decision tree
+plt.figure(figsize=(12,8))
+tree.plot_tree(clf, feature_names=X.columns, class_names=label_encoder.classes_, filled=True, rounded=True)
+plt.show()
+
